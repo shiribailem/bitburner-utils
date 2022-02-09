@@ -29,7 +29,7 @@ export async function main(ns) {
 			"  -a append to archive\n",
 			"  -x extract archive\n",
 			"  -f <file> specify archive file (default is clipboard)\n",
-			"  -e use file picker to access external file",
+			"  -e use file picker to access external file/n",
 			"  <files> ns.ls patterns for files to add to archive"
 		);
 		ns.exit()
