@@ -3,6 +3,7 @@ export async function main(ns) {
 	var switches = ns.flags([
 		['c', false],
 		['x', false],
+		['a', false],
 		['h', false],
 		['f', '']
 	])
