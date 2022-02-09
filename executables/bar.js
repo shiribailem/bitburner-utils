@@ -5,8 +5,12 @@ export async function main(ns) {
 		['x', false],
 		['a', false],
 		['h', false],
-		['f', '']
+		['f', ''],
+		['e', false]
 	])
+
+	// Shhh, this is an exploit to bypass ram requirements for the file picker, ignore this
+	const win = eval("window");
 
 	// Print help documentation on -h flag
 	//   or when lacking necessary flags
@@ -25,6 +29,7 @@ export async function main(ns) {
 			"  -a append to archive\n",
 			"  -x extract archive\n",
 			"  -f <file> specify archive file (default is clipboard)\n",
+			"  -e use file picker to access external file",
 			"  <files> ns.ls patterns for files to add to archive"
 		);
 		ns.exit()
@@ -32,18 +37,36 @@ export async function main(ns) {
 
 	// Start with an empty data variable to modify later depending on flags
 	let data = {};
-	let rawdata = '';
 
-	// Collect raw data either from clipboard or from file when opening or appending archives
+	let filehandle = null;
+
+	// Collect raw data when opening or appending archives
 	// try catches provided to present clean errors on fail
 	if (switches.f && (switches.x || switches.a)) {
+		// Open file in bitburner when passed a file with -f
 		try {
 			data = JSON.parse(ns.read(switches.f));
 		} catch {
 			ns.tprint(`Error reading file: ${switches.f}`);
 			ns.exit();
 		}
+	} else if ((switches.x || switches.a) && switches.e) {
+		// Open file using file picker when -e is passed
+		try {
+			filehandle = await win.showOpenFilePicker();
+
+			// to avoid problems with later writable behavior, remove handle from array.
+			filehandle = filehandle[0];
+			let file = await filehandle.getFile();
+
+			ns.tprint(`Opening file ${file.name} from host system.`);
+			data = JSON.parse(await file.text());
+		} catch {
+			ns.tprint("Error opening/reading/parsing file");
+			ns.exit();
+		}
 	} else if (switches.x || switches.a) {
+		// When nothing is passed, try to load from the clipboard
 		try {
 			data = JSON.parse(await navigator.clipboard.readText())
 		} catch {
@@ -71,14 +94,33 @@ export async function main(ns) {
 			data[files[i]] = ns.read(files[i]);
 		}
 
-		// stringify the data and output it either to the archive file or clipboard
+		// stringify the data and output it to the relevant output
 		if (switches.f) {
+			// Output to bitburner file if specified via -f
 			try {
 				ns.tprint(`Archive written to ${switches.f}`)
 				await ns.write(switches.f,JSON.stringify(data),'w');
 			} catch {
 				// Can't really think of why it would fail other than wrong extension
 				ns.tprint("Error writing output file (did you make sure to give a .txt extension?");
+			}
+		} else if (switches.e) {
+			// Write file to system file from picker when -e is passed
+			try {
+				// Check if filehandle is already loaded, don't show picker if appending
+				if (!filehandle) {
+					filehandle = await win.showSaveFilePicker({suggestedName: "archive.bar"});
+				}
+
+				let file = await filehandle.createWritable();
+
+				// Convert data to Blob to meet filestream requirements
+				const blobData = new Blob([JSON.stringify(data)], {type: "text/plain"})
+
+				await file.write(blobData);
+				await file.close();
+			} catch {
+				ns.tprint("Error writing file");
 			}
 		} else {
 			ns.tprint("Archive written to clipboard.")
