@@ -6,7 +6,9 @@ export async function main(ns) {
 		['a', false],
 		['h', false],
 		['f', ''],
-		['e', false]
+		['e', false],
+		['l', false],
+		['v', false]
 	])
 
 	// Shhh, this is an exploit to bypass ram requirements for the file picker, ignore this
@@ -16,13 +18,13 @@ export async function main(ns) {
 	//   or when lacking necessary flags
 	//   or when combining flags that shouldn't be combined
 	if (switches.h 
-			|| (!switches.c && !switches.a && !switches.x)
+			|| (!switches.c && !switches.a && !switches.x && !switches.l)
 			|| switches.c && switches.a || switches.a && switches.x || switches.x && switches.c
 			) {
 		ns.tprint(
 			"\nbar - Bitburner ARchive\n",
 			"-----------------------\n",
-			"bar.js -xca -f <file> <files>\n",
+			"bar.js -xca -f <file> -e -l -v <files>\n",
 			"\n",
 			"  -h prints this help document\n",
 			"  -c create archive\n",
@@ -30,6 +32,8 @@ export async function main(ns) {
 			"  -x extract archive\n",
 			"  -f <file> specify archive file (default is clipboard)\n",
 			"  -e use file picker to access external file\n",
+			"  -l list archive contents\n",
+			"  -v verbose\n",
 			"  <files> ns.ls patterns for files to add to archive"
 		);
 		ns.exit()
@@ -42,7 +46,7 @@ export async function main(ns) {
 
 	// Collect raw data when opening or appending archives
 	// try catches provided to present clean errors on fail
-	if (switches.f && (switches.x || switches.a)) {
+	if (switches.f && (switches.x || switches.a || switches.l)) {
 		// Open file in bitburner when passed a file with -f
 		try {
 			data = JSON.parse(ns.read(switches.f));
@@ -50,7 +54,7 @@ export async function main(ns) {
 			ns.tprint(`Error reading file: ${switches.f}`);
 			ns.exit();
 		}
-	} else if ((switches.x || switches.a) && switches.e) {
+	} else if ((switches.x || switches.a || switches.l) && switches.e) {
 		// Open file using file picker when -e is passed
 		try {
 			filehandle = await win.showOpenFilePicker();
@@ -59,19 +63,30 @@ export async function main(ns) {
 			filehandle = filehandle[0];
 			let file = await filehandle.getFile();
 
-			ns.tprint(`Opening file ${file.name} from host system.`);
+			if (switches.v) {
+				ns.tprint(`Opening file ${file.name} from host system.`);
+			}
 			data = JSON.parse(await file.text());
 		} catch {
 			ns.tprint("Error opening/reading/parsing file");
 			ns.exit();
 		}
-	} else if (switches.x || switches.a) {
+	} else if (switches.x || switches.a || switches.l) {
 		// When nothing is passed, try to load from the clipboard
 		try {
 			data = JSON.parse(await navigator.clipboard.readText())
 		} catch {
 			ns.tprint("Error reading data from clipboard");
 			ns.exit();
+		}
+	}
+
+	// If -l is provided list all filenames in file
+	if (switches.l) {
+		ns.tprint("Listing archive contents: ");
+
+		for (let i = 0; i < Object.keys(data).length; i++) {
+			ns.tprint(` -${Object.keys(data)[i]}`);
 		}
 	}
 
@@ -90,7 +105,9 @@ export async function main(ns) {
 
 		// Read all the files into the data structure.
 		for (let i = 0; i < files.length; i++) {
-			ns.tprint(`Adding ${files[i]} to archive.`)
+			if (switches.v) {
+				ns.tprint(`Adding ${files[i]} to archive.`)
+			}
 			data[files[i]] = ns.read(files[i]);
 		}
 
@@ -98,7 +115,9 @@ export async function main(ns) {
 		if (switches.f) {
 			// Output to bitburner file if specified via -f
 			try {
-				ns.tprint(`Archive written to ${switches.f}`)
+				if (switches.v) {
+					ns.tprint(`Archive written to ${switches.f}`)
+				}
 				await ns.write(switches.f,JSON.stringify(data),'w');
 			} catch {
 				// Can't really think of why it would fail other than wrong extension
@@ -123,14 +142,18 @@ export async function main(ns) {
 				ns.tprint("Error writing file");
 			}
 		} else {
-			ns.tprint("Archive written to clipboard.")
+			if (switches.v) {
+				ns.tprint("Archive written to clipboard.")
+			}
 			navigator.clipboard.writeText(JSON.stringify(data));
 		}
 	} else if (switches.x) {
 		// If e(x)tract is set, cycle through all keys in data and write them out
 		for (let i = 0; i < Object.keys(data).length; i++) {
 			let filename = Object.keys(data)[i];
-			ns.tprint(`Extracting: ${filename}`);
+			if (switches.v) {
+				ns.tprint(`Extracting: ${filename}`);
+			}
 			await ns.write(filename, data[filename], 'w');
 		}
 	}
