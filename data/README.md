@@ -8,3 +8,4 @@ Do not expect these libraries to cost any RAM when imported.
 |Tool|Description|
 |---|---|
 |factions.js|Contains lists of all factions in the game.|
+|crimes.js|Contains a list of all crimes.|
