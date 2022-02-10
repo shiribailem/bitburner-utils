@@ -7,3 +7,4 @@ Use the -h flag on tools for guidance on how to use them.
 |Tool|Description|
 |---|---|
 |bar.js|A simple archival tool to save mutliple files into a copyable string that can be shared easily with other bitburner players/environments.|
+|ls.js|An alternate ls tool that should behave mostly like the original with added features like hidden files|
