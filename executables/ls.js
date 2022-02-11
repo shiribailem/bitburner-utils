@@ -1,5 +1,6 @@
 /** @param {NS} ns **/
 
+// ### HARDCODED IMPORT OF TERMINAL LIBRARY FOR PORTABLE CODE ### //
 // Terminal class to print to terminal with added features and without scriptname
 // prefix.
 
@@ -8,9 +9,22 @@
 export class terminal {
 	// Constructor is mostly to perform the exploit to bypass memory cost of document
 	constructor () {
-		this.doc = eval("document");
-		this.elem = this.doc.querySelector("#terminal").parentElement.parentElement;
-		this.term = this.elem[Object.keys(this.elem)[1]].children.props.terminal;
+		//this.doc = eval("document");
+		//this.elem = this.doc.querySelector("#terminal").parentElement.parentElement;
+		//this.term = this.elem[Object.keys(this.elem)[1]].children.props.terminal;
+		this.term = this.findProp("terminal");
+	}
+
+	// Functioned copied from @omuretsu in Discord to grab terminal object
+	// this took a lot of work because apparently the electron version likes to shuffle this object around...
+	findProp(propName) {
+		for (let div of eval("document").querySelectorAll("div")) {
+		let propKey = Object.keys(div)[1];
+		if (!propKey) continue;
+		let props = div[propKey];
+		if (props.children?.props && props.children.props[propName]) return props.children.props[propName];
+		if (props.children instanceof Array) for (let child of props.children) if (child?.props && child.props[propName]) return child.props[propName];
+	}
 	}
 
 	// Simple print function, does not provide any formatting features.
@@ -39,6 +53,8 @@ export class terminal {
 		return this.term.cwd();
 	}
 }
+
+// ### END HARDCODED IMPORT ### //
 
 // Simple list of the possible extensions used by scripts
 const scriptExtensions = [
@@ -108,25 +124,35 @@ export async function main(ns) {
 	}
 
 	// Grab the current working directory for relative listings	
-	let cwd = term.cwd();
-	let target = cwd;
+	let target = term.cwd();
 
-	let fileList = [];
-
-	// Check if a directory was passed
+	// If an argument was passed then set it to the current target
 	if (switches._.length > 0) {
-		target = switches._[0];
-
-		if (target[0] != '/') {
-			target = cwd + '/' + target;
-		}
-		if (target.slice(-1)[0] != '/') {
-			target = target + '/'
-		}
-		fileList = ns.ls(ns.getHostname(), target);
-	} else {
-		fileList = ns.ls(ns.getHostname(), cwd);
+		target = switches._[0]
 	}
+
+	// Sanitize the input
+	// If there's no leading /, presume it's a relative listing, and prepend
+	// the current working directory
+	if (target[0] != '/') {
+		target = term.cwd() + '/' + target;
+	}
+
+	// Add a trailing slash if there isn't one.
+	// This is mostly to avoid false positives if a directory name partial
+	// matches a filename.
+	if (target.slice(-1)[0] != '/') {
+		target = target + '/'
+	}
+
+	// If the target is just root(/) then empty it out because otherwise
+	// later matching will exclude files in root
+	if (target == '/') {
+		target = '';
+	}
+
+	// Get all files on the server
+	let fileList = ns.ls(ns.getHostname());
 
 	// Create arrays to split files into types
 	let directories = [];
