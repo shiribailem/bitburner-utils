@@ -1,5 +1,16 @@
 /** @param {NS} ns **/
 
+const GUIDE=
+"Terminal Library:\n" +
+"Provides the terminal class object containing:\n" +
+"    terminal.term: a direct handle for the native terminal class\n" +
+"    terminal.print(string): Prints natively to the terminal without the added script name.\n" +
+"    terminal.fancyPrint(React Element): Takes a react element to print fancy text\n" +
+"    terminal.setColor(string/React Element, color): Returns a React Element wrapping the passed\n"+
+"             string or React Element to apply the color given.\n" +
+"    terminal.setBold(string/React Element): Like setColor, but sets bold.\n" +
+"    terminal.cwd(): Returns the current terminal directory."
+
 // Terminal class to print to terminal with added features and without scriptname
 // prefix.
 
@@ -8,9 +19,6 @@
 export class terminal {
 	// Constructor is mostly to perform the exploit to bypass memory cost of document
 	constructor () {
-		//this.doc = eval("document");
-		//this.elem = this.doc.querySelector("#terminal").parentElement.parentElement;
-		//this.term = this.elem[Object.keys(this.elem)[1]].children.props.terminal;
 		this.term = this.findProp("terminal");
 	}
 
@@ -55,5 +63,5 @@ export class terminal {
 
 export async function main(ns) {
 	const term = new terminal();
-	term.print("This is the terminal library")
+	term.print(GUIDE)
 }
