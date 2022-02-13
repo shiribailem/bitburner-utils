@@ -135,7 +135,11 @@ export async function main(ns) {
 	// If there's no leading /, presume it's a relative listing, and prepend
 	// the current working directory
 	if (target[0] != '/') {
-		target = term.cwd() + '/' + target;
+		if (term.cwd() == '/') {
+			target = '/' + target;
+		} else {
+			target = term.cwd() + '/' + target;
+		}
 	}
 
 	// Add a trailing slash if there isn't one.
